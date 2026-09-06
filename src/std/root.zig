@@ -11,28 +11,78 @@ const testing = revo.lang.testing;
 
 pub const api = @import("api.zig");
 
-pub const root_impls: []const api.Impl = &.{
+pub const Impl = struct {
+    pub fn len(vm: *VM, val: T.any) !HostResult {
+        const mm = try vm.getMetamethodByAtom(val, revo.core_atoms.atomId(.__len));
+        if (mm) |m| return callUnaryMetamethod(m, val, vm);
+        return switch (val.tag()) {
+            .string => .data(Data.new.num(vm.stringValue(val.asString().?).len)),
+            .table => .data(Data.new.num((try vm.tables.get(val.asTable().?)).count())),
+            .tuple => .data(Data.new.num((try vm.tuples.get(val.asTuple().?)).items.len)),
+            else => .errType(1, "string, table, or tuple", @import("root.zig").typeof(val, vm)),
+        };
+    }
+
+    pub fn inspect(vm: *VM, val: T.any) !HostResult {
+        if (comptime !revo.is_freestanding)
+            _ = try print(&[_]Data{val}, vm);
+        return .data(val);
+    }
+
+    pub fn @"type"(vm: *VM, val: T.any) !HostResult {
+        if (val.asStructVal()) |instance_id| {
+            const instance = vm.struct_instances.get(instance_id) catch
+                return .data(Data.new.atom(try vm.internAtom("struct")));
+            return .data(Data.new.structType(instance.type_id));
+        }
+        return .data(Data.new.atom(try vm.internAtom(@import("root.zig").typeof(val, vm))));
+    }
+
+    pub fn typeof(vm: *VM, val: T.any) !HostResult {
+        return @"type"(vm, val);
+    }
+
+    pub fn expect(vm: *VM, val: T.any) !HostResult {
+        if (revo.isFalse(val)) return HostResult.Err(vm, "ExpectFailed");
+        return HostResult.Ok(vm, val);
+    }
+
+    pub fn expect_eq(vm: *VM, a: T.any, b: T.any) !HostResult {
+        if (vm.compare(a, b) != .eq) {
+            return HostResult.Err(vm, "NotEqual");
+        }
+        return HostResult.Ok(vm, a);
+    }
+
+    pub fn sleep(vm: *VM, ms: T.number) !HostResult {
+        const n: u64 = numToInt(u64, ms) orelse return .errType(0, "non-negative integer", @import("root.zig").typeof(Data.new.num(ms), vm));
+        try vm.schedParkCurrentForSleepMS(n);
+        return .parked();
+    }
+
+    pub fn gensym(vm: *VM) !HostResult {
+        const n = gensym_counter;
+        gensym_counter += 1;
+        const name = try std.fmt.allocPrint(vm.runtime.alloc, "__gensym_{d}", .{n});
+        defer vm.runtime.alloc.free(name);
+        return .data(try vm.ownDataStringNoDedup(name));
+    }
+};
+
+pub const root_impls: []const api.Impl = impls(Impl).val ++ &[_]api.Impl{
     .{ .name = "fmt", .f = defineVariadic(&[_]TypeSpec{.string}, fmt) },
-    .{ .name = "len", .f = define(&[_]TypeSpec{.any}, len_) },
-    .{ .name = "inspect", .f = define(&[_]TypeSpec{.any}, inspect) },
     .{ .name = "get_meta", .f = define(&[_]TypeSpec{.any}, meta.get_meta) },
     .{ .name = "set_meta", .f = define(&[_]TypeSpec{ .any, .any }, meta.set_meta) },
-    .{ .name = "type", .f = define(&[_]TypeSpec{.any}, typeof_) },
-    .{ .name = "typeof", .f = define(&[_]TypeSpec{.any}, typeof_) },
-    .{ .name = "expect", .f = define(&[_]TypeSpec{.any}, expect) },
-    .{ .name = "expect_eq", .f = define(&[_]TypeSpec{ .any, .any }, expect_eq) },
-    .{ .name = "assert", .f = define(&[_]TypeSpec{.any}, assert_) },
-    .{ .name = "assert_eq", .f = define(&[_]TypeSpec{ .any, .any }, assert_eq) },
     .{ .name = "set_debug", .f = define(&[_]TypeSpec{.table}, meta.set_debug) },
     .{ .name = "debug", .f = define(&[_]TypeSpec{}, debug_) },
     .{ .name = "unwrap", .f = define(&[_]TypeSpec{.tuple}, try_) },
     .{ .name = "chan", .f = defineVariadic(&[_]TypeSpec{}, chan_new) },
     .{ .name = "send", .f = define(&[_]TypeSpec{ .tuple, .any }, chan_send) },
     .{ .name = "recv", .f = define(&[_]TypeSpec{.tuple}, chan_recv) },
-    .{ .name = "sleep", .f = define(&[_]TypeSpec{.number}, sleep) },
+    .{ .name = "assert", .f = define(&[_]TypeSpec{.any}, assert_) },
+    .{ .name = "assert_eq", .f = define(&[_]TypeSpec{ .any, .any }, assert_eq) },
     .{ .name = "panic", .f = defineVariadic(&[_]TypeSpec{}, panic_) },
     .{ .name = "print", .f = defineVariadic(&[_]TypeSpec{}, print) },
-    .{ .name = "gensym", .f = define(&[_]TypeSpec{}, gensym) },
 };
 
 pub const os_impls: []const api.Impl = &.{

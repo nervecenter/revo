@@ -23,7 +23,7 @@ pub fn setSeed(args: []const Data, vm: *VM) !HostResult {
 
     vm.runtime.rng_prng = std.Random.DefaultPrng.init(new_seed);
 
-    return .okData(Data.new.nil());
+    return .data(Data.new.nil());
 }
 
 pub fn revertSeed(args: []const Data, vm: *VM) !HostResult {
@@ -31,14 +31,14 @@ pub fn revertSeed(args: []const Data, vm: *VM) !HostResult {
 
     vm.runtime.rng_prng = null;
 
-    return .okData(Data.new.nil());
+    return .data(Data.new.nil());
 }
 
 pub fn rand(args: []const Data, vm: *VM) !HostResult {
     const raw_arg = args[0].asNum() orelse return .errType(0, "num", root.typeof(args[0], vm));
     const upper_bound: isize = root.numToInt(isize, raw_arg) orelse return .errType(0, "integer num", root.typeof(args[0], vm));
 
-    return .okData(Data.new.num(randomNumber(isize, vm, 0, upper_bound)));
+    return .data(Data.new.num(randomNumber(isize, vm, 0, upper_bound)));
 }
 
 pub fn randRange(args: []const Data, vm: *VM) !HostResult {
@@ -53,13 +53,13 @@ pub fn randRange(args: []const Data, vm: *VM) !HostResult {
     else
         randomNumber(isize, vm, upper_bound, lower_bound);
 
-    return .okData(Data.new.num(result));
+    return .data(Data.new.num(result));
 }
 
 pub fn randFloat(args: []const Data, vm: *VM) !HostResult {
     _ = args;
 
-    return .okData(Data.new.num(randomNumber(f64, vm, 0.0, 1.0)));
+    return .data(Data.new.num(randomNumber(f64, vm, 0.0, 1.0)));
 }
 
 pub fn choice(args: []const Data, vm: *VM) !HostResult {
@@ -70,9 +70,9 @@ pub fn choice(args: []const Data, vm: *VM) !HostResult {
     if (table.array.items.len > 0) {
         const idx = randomNumber(usize, vm, 0, table.array.items.len - 1);
 
-        return .okData(table.array.items[idx]);
+        return .data(table.array.items[idx]);
     } else {
-        return .okData(Data.new.nil());
+        return .data(Data.new.nil());
     }
 }
 

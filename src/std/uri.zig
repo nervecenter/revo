@@ -30,7 +30,7 @@ fn decode(args: []const Data, vm: *VM) !HostResult {
     try parsePort(&uri, root_id, vm);
 
     const data = Data.new.table(root_id);
-    return HostResult.okData(data);
+    return .data(data);
 }
 
 fn encode(args: []const Data, vm: *VM) !HostResult {
@@ -49,7 +49,7 @@ fn encode(args: []const Data, vm: *VM) !HostResult {
 
     const slice = try out.toOwnedSlice();
     const data = try vm.adoptDataString(slice);
-    return root.resultTuple(vm, .ok, data);
+    return HostResult.Ok(vm, data);
 }
 
 fn writePart(table: *Table, name: []const u8, prefix: ?[]const u8, postfix: ?[]const u8, w: *std.Io.Writer, vm: *VM) !void {

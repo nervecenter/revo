@@ -260,15 +260,24 @@ pub const Impl = struct {
     }
 
     // dataframe.stack(table<Dataframe>) -> Dataframe
+    pub fn stack(vm: *VM, frame_table_id: Args.table) !HostResult {
         // Ensure each Dataframe in the input table has matching column names and types
         // Create a result dataframe with the same columns
+        const result_table_id = try copy_df_columns_empty(vm, frame_table);
+        const result_table = try vm.tables.get(result_table_id);
         // For each Dataframe in the input table
             // Append that Dataframe's columns to the current result columns
         // Return the result dataframe
+        return HostResult.data(Value.new.table(result_table_id));
+    }
 
     // dataframe.rename(Dataframe, string, string) -> Dataframe
-        // Create a result dataframe with every column copied except the renamed one
-        // Copy the source column with the new name
+        // Create a result dataframe
+        // For each column
+            // If it's the requested column
+                // Copy the source column with the new name
+            // Otherwise
+                // Copy the column data
         // Return the result dataframe
 
     // dataframe.inner_join(table<Dataframe>, string) -> Dataframe

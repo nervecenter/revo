@@ -260,7 +260,7 @@ pub const Impl = struct {
     }
 
     // dataframe.stack(table<Dataframe>) -> Dataframe
-    pub fn stack(vm: *VM, frame_table_id: Args.table) !HostResult {
+    pub fn stack(vm: *VM, table_of_tables_id: Args.table) !HostResult {
         // Ensure each Dataframe in the input table has matching column names and types
         // Create a result dataframe with the same columns
         const result_table_id = try copy_df_columns_empty(vm, frame_table);
@@ -272,18 +272,26 @@ pub const Impl = struct {
     }
 
     // dataframe.rename(Dataframe, string, string) -> Dataframe
+    pub fn rename(vm: *VM, frame_table_id: Args.table, old_name: Args.string, new_name: Args.string) !HostResult {
         // Create a result dataframe
+        const result_table_id = try copy_df_columns_empty(vm, frame_table);
+        const result_table = try vm.tables.get(result_table_id);
         // For each column
             // If it's the requested column
                 // Copy the source column with the new name
             // Otherwise
                 // Copy the column data
         // Return the result dataframe
+        return HostResult.data(Value.new.table(result_table_id));
+    }
 
     // dataframe.inner_join(table<Dataframe>, string) -> Dataframe
+    pub fn inner_join(vm: *VM, table_of_tables_id: Args.table, join_column: Args.string) !HostResult {
         // Ensure the input dataframes all have a join column named the input string of matching type
         // Pull out the first Dataframe's join column as a list
         // Create a result Dataframe and add the join column as an array table
+        const result_table_id = try copy_df_columns_empty(vm, frame_table);
+        const result_table = try vm.tables.get(result_table_id);
         // For each input Dataframe in the input table
             // For each column in the current Dataframe not in the result Dataframe
                 // For each value in the join column
@@ -292,10 +300,15 @@ pub const Impl = struct {
                             // Append the value in the new column at that index
                             // continue
         // Return the result dataframe
+        return HostResult.data(Value.new.table(result_table_id));
+    }
 
     // dataframe.unique(Dataframe, table<string>) -> Dataframe
+    pub fn unique(vm: *VM, frame_table_id: Args.table, unique_columns: Args.table) !HostResult {
         // Initiate a AutoHashMap of <f64, bool> to track seen row values
         // Initiate a result Dataframe
+        const result_table_id = try copy_df_columns_empty(vm, frame_table);
+        const result_table = try vm.tables.get(result_table_id);
         // For each row in the input Dataframe
             // Set an accumulator to the root.hash() of the first column in the string table
             // For each other column in the string table
@@ -303,7 +316,8 @@ pub const Impl = struct {
             // If the resulting hash is in the seen hashmap, continue
             // Otherwise, push the row values on the result table, and add the hash to the seen hashmap
         // Return the result dataframe
-
+        return HostResult.data(Value.new.table(result_table_id));
+    }
 
 };
 

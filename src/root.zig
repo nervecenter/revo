@@ -104,14 +104,12 @@ pub const Runtime = struct {
     ) lang.BuildResult {
         const vm_ptr = self.vm orelse return .{ .err = .{ .parse = .{
             .kind = .LexUnknown,
-            .span = null,
-            .message = "vm not initialized",
+            .report = .{ .message = "vm not initialized" },
         } } };
         return lang.build(vm_ptr, .{ .name = name, .text = source }, .{}) catch |err| {
             return .{ .err = .{ .parse = .{
                 .kind = .LexUnknown,
-                .span = null,
-                .message = @errorName(err),
+                .report = .{ .message = @errorName(err) },
             } } };
         };
     }
@@ -122,7 +120,7 @@ pub const Runtime = struct {
         self: *Runtime,
         name: []const u8,
         compiled: lang.Bytecode,
-    ) !vm.run.RunResult {
+    ) !RunResult {
         const vm_ptr = self.vm orelse return error.NoVM;
         try vm_ptr.setProgramDebugInfo(compiled.spans, "", name);
         return try vm.run.runBytecodeReport(vm_ptr, name, compiled.instructions);
@@ -133,7 +131,7 @@ pub const Runtime = struct {
         self: *Runtime,
         name: []const u8,
         source: []const u8,
-    ) !vm.run.RunResult {
+    ) !RunResult {
         const vm_ptr = self.vm orelse return error.NoVM;
         const build_result = lang.build(vm_ptr, .{ .name = name, .text = source }, .{}) catch {
             return error.CompilationError;
@@ -141,7 +139,7 @@ pub const Runtime = struct {
         const compiled = switch (build_result) {
             .ok => |art| art,
             .err => |err| {
-                printBuildError(self.alloc, .{ .name = name, .text = source }, err);
+                printBuildError(self.alloc, .{ .name = name, .text = source }, err, self.supports_color);
                 self.resetDiagArena();
                 return error.CompilationError;
             },
@@ -150,6 +148,11 @@ pub const Runtime = struct {
         defer self.alloc.free(compiled.spans);
         try vm_ptr.setProgramDebugInfo(compiled.spans, "", name);
         return try vm.run.runBytecodeReport(vm_ptr, name, compiled.instructions);
+    }
+
+    pub fn callFunction(self: *Runtime, callee: Value, args: []const Value) !Value {
+        const vm_ptr = self.vm orelse return error.NoVM;
+        return vm_ptr.callFunctionParts(callee, null, args, null);
     }
 };
 
@@ -382,9 +385,9 @@ pub const RunFailure = vm.RunFailure;
 pub const RunResult = vm.RunResult;
 
 pub const argparse = @import("./argparse.zig");
-pub const diff = @import("./diff.zig");
 pub const baselib = @import("./baselib/root.zig");
 pub const baselib_net = @import("./baselib/net.zig");
+pub const diff = @import("./diff.zig");
 pub const extension = @import("./extension.zig");
 pub const lang = @import("./lang/root.zig");
 pub const term = @import("./term.zig");

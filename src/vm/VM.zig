@@ -208,6 +208,7 @@ panic_span: ?Span = null,
 runtime_message: ?[]const u8 = null,
 gc_check_counter: usize = 0,
 host_call_depth: usize = 0,
+index_call_depth: usize = 0,
 loaded_extensions: std.ArrayList(std.DynLib),
 c_data: ?*anyopaque = null,
 gc_enabled: bool = true,
@@ -1143,11 +1144,19 @@ fn detachClosureForFiber(self: *VM, closure_id: mem.FunctionID) !mem.FunctionID 
 }
 
 /// `result_reg` is a register (relative to the caller frame's base) where a
-/// parked callee's eventual result should land. host callers that consume the
-/// value through dispatch instructions (index, concat, call) pass the
-/// instruction's result register so a park mid-callee resumes with the value
-/// in place; callers that discard or consume the result directly pass null.
-pub fn callFunctionParts(self: *VM, callee: Value, maybe_first: ?Value, args: []const Value, result_reg: ?opcode.Register) RunError!Value {
+/// parked callee's eventual result should land
+///
+/// host callers that consume the value through dispatch instructions (index, concat, call)
+/// pass the instruction's result register so a park mid-callee resumes with the value inplace
+///
+/// callers that discard or consume the result directly pass null
+pub fn callFunctionParts(
+    self: *VM,
+    callee: Value,
+    maybe_first: ?Value,
+    args: []const Value,
+    result_reg: ?opcode.Register,
+) RunError!Value {
     self.host_call_depth += 1;
     defer self.host_call_depth -= 1;
 

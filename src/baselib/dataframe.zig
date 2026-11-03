@@ -258,7 +258,6 @@ pub const Impl = struct {
         return HostResult.data(Value.new.table(result_table_id));
     }
 
-    // zig fmt: off
     // dataframe.stack(table<Dataframe>) -> Dataframe
         // Ensure each Dataframe in the input table has matching column names and types
         // Create a result dataframe with the same columns
@@ -294,7 +293,6 @@ pub const Impl = struct {
             // If the resulting hash is in the seen hashmap, continue
             // Otherwise, push the row values on the result table, and add the hash to the seen hashmap
         // Return the result dataframe
-// zig fmt: on
 
 };
 
